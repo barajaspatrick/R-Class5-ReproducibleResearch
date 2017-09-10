@@ -1,0 +1,107 @@
+## Coursera Reproducible Research Project 2
+The following code will take storm data from the national weather service and determine
+the 10 most devestating type of weather events in terms of fatalities, injuries and economic impact.
+
+# Data Processing
+# Processing data for injuries and fatalities
+
+```{r}
+library(ggplot2)
+zipfile <- bzfile("repdata%2Fdata%2FStormData.csv.bz2")
+df1 <- read.csv(zipfile, header = TRUE)
+
+## data for number of fatalities by natural eventype
+fatalitiesDF <- aggregate(df1$FATALITIES, by=list(evtype1 = df1$EVTYPE), FUN = sum)
+fatalitiesDF <- fatalitiesDF[order(fatalitiesDF$x, decreasing = TRUE), ]
+fatalitiesDF <- head(fatalitiesDF, 10)
+
+## data for number of injuries by natural eventype
+injuriesDF <- aggregate(df1$INJURIES, by=list(evtype2 = df1$EVTYPE), FUN = sum)
+injuriesDF <- injuriesDF[order(injuriesDF$x, decreasing = TRUE), ]
+injuriesDF <- head(injuriesDF, 10)
+```
+
+# processing economic impact by event type
+```{r}
+knitr::opts_chunk$set(cache=TRUE)
+
+df2 <- df1
+df2$PROPDMGEXP <- as.character(df2$PROPDMGEXP)
+df2$CROPDMGEXP <- as.character(df2$CROPDMGEXP)
+
+for (i in 1:length(df2$PROPDMGEXP)){
+        if (df2$PROPDMGEXP[i] == "H") {
+                df2$PROPDMG[i] <- df2$PROPDMG[i] * 100
+        } else if (df2$PROPDMGEXP[i] == "K") {
+                df2$PROPDMG[i] <- df2$PROPDMG[i] * 1000        
+        } else if (df2$PROPDMGEXP[i] == "M") {
+                df2$PROPDMG[i] <- df2$PROPDMG[i] * 1000000
+        } else if (df2$PROPDMGEXP[i] == "B") {
+                df2$PROPDMG[i] <- df2$PROPDMG[i] * 1000000000
+        } else {
+                df2$PROPDMG[i] <- df2$PROPDMG[i]
+        }
+}
+
+for (i in 1:length(df2$CROPDMGEXP)){
+        if (df2$CROPDMGEXP[i] == "H") {
+                df2$CROPDMG[i] <- df2$CROPDMG[i] * 100
+        } else if (df2$CROPDMGEXP[i] == "K") {
+                df2$CROPDMG[i] <- df2$CROPDMG[i] * 1000        
+        } else if (df2$CROPDMGEXP[i] == "M") {
+                df2$CROPDMG[i] <- df2$CROPDMG[i] * 1000000
+        } else if (df2$CROPDMGEXP[i] == "B") {
+                df2$CROPDMG[i] <- df2$CROPDMG[i] * 1000000000
+        } else {
+                df2$CROPDMG[i] <- df2$CROPDMG[i]
+        }
+}
+
+df2$sumCost <- with(df2, PROPDMG + CROPDMG)
+
+costDF <- aggregate(df2$sumCost, by=list(evtype = df2$EVTYPE), FUN = sum)
+costDF <- costDF[order(costDF$x, decreasing = TRUE), ]
+costDF <- head(costDF, 10)
+
+```
+## Results
+# Number of fatalities
+```{r fig.align = 'center', fig.height = 4}
+
+plot1 <- ggplot(fatalitiesDF, aes(reorder(evtype1,x), x)) ## reorder w/ respect to x
+plot1 + geom_bar(stat = "identity", fill = "coral1", width = .9) +
+        coord_flip() +
+        xlab("Event Type") +
+        ylab("Number of Fatalities") +
+        ggtitle("Fatalities per Event Type")         
+
+```
+
+
+# Number of injuries
+```{r fig.align = 'center', fig.height = 4}
+
+plot2 <- ggplot(injuriesDF, aes(reorder(evtype2, x), x))
+plot2 + geom_bar(stat = "identity", fill = "coral1", width = .9) +
+        coord_flip() +
+        xlab("Event Type") +
+        ylab("Number of Injuries") +
+        ggtitle("Injuries per Event Type")         
+
+```
+Tornados seem to cause the greatest number of injuries by far compared
+to any other type of event
+
+# Economic impact of storm
+```{r fig.align = 'center', fig.height = 4}
+
+plot3 <- ggplot(costDF, aes(reorder(evtype, x), x))
+plot3 + geom_bar(stat = "identity", fill = "coral1", width = .9) +
+        coord_flip() +
+        xlab("Event Type") +
+        ylab("Economic impact") +
+        ggtitle("Economic impact per Event Type")         
+```
+According to the data Floods seem to cause the greatest economic impact
+
+
